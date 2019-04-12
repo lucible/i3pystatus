@@ -77,10 +77,10 @@ class BatteryCharge(Battery):
         return self.battery_info["CHARGE_NOW"] / self.battery_info["CHARGE_FULL" + design]
 
     def wh_remaining(self):
-        return self.battery_info['CHARGE_NOW'] * self.battery_info['VOLTAGE_NOW']
+        return self.battery_info['ENERGY_NOW']
 
     def wh_total(self, design):
-        return self.battery_info['CHARGE_FULL' + design] * self.battery_info['VOLTAGE_NOW']
+        return self.battery_info['ENERGY_FULL' + design]
 
     def wh_depleted(self):
         return (self.battery_info['CHARGE_FULL'] - self.battery_info['CHARGE_NOW']) * self.battery_info['VOLTAGE_NOW']
