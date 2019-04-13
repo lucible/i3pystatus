@@ -16,6 +16,7 @@ class ALSA(IntervalModule):
     * `{muted}` — the value of one of the `muted` or `unmuted` settings
     * `{card}` — the associated soundcard
     * `{mixer}` — the associated ALSA mixer
+    * `{show_icon}` — displayed an icon based on mute & volume percentage
     """
 
     interval = 1
@@ -28,6 +29,7 @@ class ALSA(IntervalModule):
         ("card", "ALSA sound card"),
         ("increment", "integer percentage of max volume to in/decrement volume on mousewheel"),
         "muted", "unmuted",
+        ("icons", "list of icons; mute must be the 1st item, and the rest in increasing order of volume"),
         "color_muted", "color",
         "channel",
         ("map_volume", "volume display/setting as in AlsaMixer. increment option is ignored then.")
@@ -35,6 +37,7 @@ class ALSA(IntervalModule):
 
     muted = "M"
     unmuted = ""
+    icons = ['muted', 'low', 'middle', 'high']
     color_muted = "#AAAAAA"
     color = "#FFFFFF"
     format = "♪: {volume}"
@@ -86,6 +89,7 @@ class ALSA(IntervalModule):
         self.fdict["volume"] = self.get_cur_volume()
         self.fdict["muted"] = self.muted if muted else self.unmuted
         self.fdict["db"] = self.get_db()
+        self.fdict["show_icon"] = self.show_icon()
 
         if muted and self.format_muted is not None:
             output_format = self.format_muted
@@ -175,3 +179,16 @@ class ALSA(IntervalModule):
 
     def exp10(self, x):
         return exp(x * log(10))
+
+    def show_icon(self):
+        base = 100 / (len(self.icons) - 1)  # subtract the mute icon from the length
+        index = floor(self.get_cur_volume / base) + 1  # add 1 to account for the mute icon
+
+        muted = False
+        if self.has_mute:
+            muted = self.alsamixer.getmute()[self.channel] == 1
+
+        if muted:
+            return self.icons[0]
+        else:
+            return self.icons[index]
