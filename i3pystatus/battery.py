@@ -290,6 +290,22 @@ class BatteryChecker(IntervalModule):
         elif abs_consumption < 0:
             return wh_remaining / self.consumption(batteries) * 60
 
+    def make_bar(self, percentage, status):
+        if status in ['Charging', 'Discharging']:
+            if status == 'Discharging':
+                if percentage > 75:
+                    return ""
+                elif percentage > 25:
+                    return ""
+                else:
+                    return ""
+            else:
+                return ""
+        elif status == 'Depleted':
+            return "depleted"
+        else:
+            return ""
+
     def init(self):
         if not self.paths or (self.path and self.path not in self.paths):
             bat_dir = self.base_path
@@ -327,6 +343,8 @@ class BatteryChecker(IntervalModule):
                 }
                 return
 
+        status = self.battery_status(batteries)
+
         fdict = {
             "battery_ident": self.battery_ident,
             "no_of_batteries": len(batteries),
@@ -335,13 +353,12 @@ class BatteryChecker(IntervalModule):
             "consumption": self.consumption(batteries),
             "remaining": TimeWrapper(0, "%E%h:%M"),
             "glyph": make_glyph(self.percentage(batteries), self.glyphs),
-            "bar": make_bar(self.percentage(batteries)),
-            "bar_design": make_bar(self.percentage(batteries, design=True)),
+            "bar": self.make_bar(self.percentage(batteries), status),
+            "bar_design": self.make_bar(self.percentage(batteries, design=True), status),
             "vertical_bar": make_vertical_bar(self.percentage(batteries)),
             "vertical_bar_design": make_vertical_bar(self.percentage(batteries, design=True)),
         }
 
-        status = self.battery_status(batteries)
         if status in ["Charging", "Discharging"]:
             remaining = self.remaining(batteries)
             fdict["remaining"] = TimeWrapper(remaining * 60, "%E%h:%M")
