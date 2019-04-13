@@ -182,7 +182,7 @@ class ALSA(IntervalModule):
 
     def show_icon(self):
         base = 100 / (len(self.icons) - 1)  # subtract the mute icon from the length
-        index = floor(self.get_cur_volume / base) + 1  # add 1 to account for the mute icon
+        index = floor(self.get_cur_volume() / base) + 1  # add 1 to account for the mute icon
 
         muted = False
         if self.has_mute:
