@@ -24,7 +24,7 @@ def battery_test(path, format, expected):
     ("test_battery_132", "DIS", "8.370", "1h:17m", "21.95", "21.95"),
     ("test_battery_broken1", "FULL", "0.000", "0h:00m", "100.00", "100.00"),
     ("test_battery_issue89_2", "DIS", "0.000", "0h:00m", "53.51", "51.02"),
-    ("test_battery_issue729", "DIS", "4.341", "4h:32m", "66.70", "62.30")
+    ("test_battery_issue729", "DIS", "4.341", "4h:17m", "64.52", "60.92")
 ])
 def test_basic(path, status, consumption, remaining, percentage, percentage_design):
     battery_test(path, "{status}", status)

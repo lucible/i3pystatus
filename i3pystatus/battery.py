@@ -74,16 +74,28 @@ class BatteryCharge(Battery):
             return None
 
     def _percentage(self, design):
-        return self.battery_info["CHARGE_NOW"] / self.battery_info["CHARGE_FULL" + design]
+        if 'ENERGY_NOW' in self.battery_info and 'ENERGY_FULL' in self.battery_info:
+            return self.battery_info['ENERGY_NOW'] / self.battery_info['ENERGY_FULL' + design]
+        else:
+            return self.battery_info["CHARGE_NOW"] / self.battery_info["CHARGE_FULL" + design]
 
     def wh_remaining(self):
-        return self.battery_info['ENERGY_NOW']
+        if 'ENERGY_NOW' in self.battery_info:
+            return self.battery_info['ENERGY_NOW']
+        else:
+            return self.battery_info['CHARGE_NOW'] * self.battery_info['VOLTAGE_NOW']
 
     def wh_total(self, design):
-        return self.battery_info['ENERGY_FULL' + design]
+        if 'ENERGY_FULL' in self.battery_info:
+            return self.battery_info['ENERGY_FULL' + design]
+        else:
+            return self.battery_info['CHARGE_FULL' + design] * self.battery_info['VOLTAGE_NOW']
 
     def wh_depleted(self):
-        return (self.battery_info['CHARGE_FULL'] - self.battery_info['CHARGE_NOW']) * self.battery_info['VOLTAGE_NOW']
+        if 'ENERGY_FULL' in self.battery_info and 'ENERGY_NOW' in self.battery_info:
+            return self.battery_info['ENERGY_FULL'] - self.battery_info['ENERGY_NOW']
+        else:
+            return (self.battery_info['CHARGE_FULL'] - self.battery_info['CHARGE_NOW']) * self.battery_info['VOLTAGE_NOW']
 
     def remaining(self):
         if self.status() == "Discharging":
@@ -193,6 +205,7 @@ class BatteryChecker(IntervalModule):
         "critical_level_percentage",
         "alert_percentage",
         "alert_timeout",
+        ("alert_design", "Changes whether the alert uses relative or absolute percentage."),
         ("alert_format_title", "The title of the notification, all formatters can be used"),
         ("alert_format_body", "The body text of the notification, all formatters can be used"),
         ("path", "Override the default-generated path and specify the full path for a single battery"),
@@ -227,6 +240,7 @@ class BatteryChecker(IntervalModule):
     critical_level_percentage = 1
     alert_percentage = 10
     alert_timeout = -1
+    alert_design = False
     alert_format_title = "Low battery"
     alert_format_body = "Battery {battery_ident} has only {percentage:.2f}% ({remaining:%E%hh:%Mm}) remaining!"
     color = "#ffffff"
@@ -364,9 +378,14 @@ class BatteryChecker(IntervalModule):
             fdict["remaining"] = TimeWrapper(remaining * 60, "%E%h:%M")
             if status == "Discharging":
                 fdict["status"] = "DIS"
-                if self.percentage(batteries) <= self.alert_percentage:
-                    urgent = True
-                    color = self.critical_color
+                if self.alert_design is True:
+                    if self.percentage(batteries, design=True) <= self.alert_percentage:
+                        urgent = True
+                        color = self.critical_color
+                else:
+                    if self.percentage(batteries) <= self.alert_percentage:
+                        urgent = True
+                        color = self.critical_color
             else:
                 fdict["status"] = "CHR"
                 color = self.charging_color
@@ -376,23 +395,43 @@ class BatteryChecker(IntervalModule):
         else:
             fdict["status"] = "FULL"
             color = self.full_color
-        if self.critical_level_command and fdict["status"] == "DIS" and fdict["percentage"] <= self.critical_level_percentage:
-            run_through_shell(self.critical_level_command, enable_shell=True)
+        if self.alert_design is True:
+            if self.critical_level_command and fdict["status"] == "DIS" and fdict["percentage_design"] <= self.critical_level_percentage:
+                run_through_shell(self.critical_level_command, enable_shell=True)
+        else:
+            if self.critical_level_command and fdict["status"] == "DIS" and fdict["percentage"] <= self.critical_level_percentage:
+                run_through_shell(self.critical_level_command, enable_shell=True)
 
-        if self.alert and fdict["status"] == "DIS" and fdict["percentage"] <= self.alert_percentage:
-            title, body = formatp(self.alert_format_title, **fdict), formatp(self.alert_format_body, **fdict)
-            if self.notification is None:
-                self.notification = DesktopNotification(
-                    title=title,
-                    body=body,
-                    icon="battery-caution",
-                    urgency=2,
-                    timeout=self.alert_timeout,
-                )
-                self.notification.display()
-            else:
-                self.notification.update(title=title,
-                                         body=body)
+        if self.alert_design is True:
+            if self.alert and fdict["status"] == "DIS" and fdict["percentage_design"] <= self.alert_percentage:
+                title, body = formatp(self.alert_format_title, **fdict), formatp(self.alert_format_body, **fdict)
+                if self.notification is None:
+                    self.notification = DesktopNotification(
+                        title=title,
+                        body=body,
+                        icon="battery-caution",
+                        urgency=2,
+                        timeout=self.alert_timeout,
+                    )
+                    self.notification.display()
+                else:
+                    self.notification.update(title=title,
+                                             body=body)
+        else:
+            if self.alert and fdict["status"] == "DIS" and fdict["percentage"] <= self.alert_percentage:
+                title, body = formatp(self.alert_format_title, **fdict), formatp(self.alert_format_body, **fdict)
+                if self.notification is None:
+                    self.notification = DesktopNotification(
+                        title=title,
+                        body=body,
+                        icon="battery-caution",
+                        urgency=2,
+                        timeout=self.alert_timeout,
+                    )
+                    self.notification.display()
+                else:
+                    self.notification.update(title=title,
+                                             body=body)
 
         if self.levels and fdict['status'] == 'DIS':
             self.levels.setdefault(0, self.status.get('DPL', 'DPL'))
