@@ -190,5 +190,7 @@ class ALSA(IntervalModule):
 
         if muted:
             return self.icons[0]
+        elif self.get_cur_volume() == 100:
+            return self.icons[-1]
         else:
             return self.icons[index]
