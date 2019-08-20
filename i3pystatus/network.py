@@ -1,4 +1,5 @@
 from fnmatch import fnmatch
+from math import floor
 
 import netifaces
 
@@ -75,7 +76,7 @@ class NetworkInfo:
     Retrieve network information.
     """
 
-    def __init__(self, interface, ignore_interfaces, detached_down, unknown_up, freq_divisor, get_wifi_info=False):
+    def __init__(self, interface, ignore_interfaces, detached_down, unknown_up, freq_divisor, icons, get_wifi_info=False):
         if interface not in netifaces.interfaces() and not detached_down:
             raise RuntimeError(
                 "Unknown interface {iface}!".format(iface=interface))
@@ -84,6 +85,7 @@ class NetworkInfo:
         self.detached_down = detached_down
         self.unknown_up = unknown_up
         self.get_wifi_info = get_wifi_info
+        self.icons = icons
 
         if freq_divisor == 0:
             raise RuntimeError("Frequency divider cannot be 0!")
@@ -148,7 +150,7 @@ class NetworkInfo:
         return info
 
     def extract_wireless_info(self, interface):
-        info = dict(essid="", freq="", quality=0.0, quality_bar="")
+        info = dict(essid="", freq="", quality=0.0, quality_bar="", quality_icon="")
 
         # Just return empty values if we're not using any Wifi functionality
         if not self.get_wifi_info:
@@ -172,6 +174,17 @@ class NetworkInfo:
         info["quality"] *= 100
         info["quality_bar"] = make_bar(info["quality"])
         info["quality"] = round(info["quality"])
+
+        def show_icon():
+            base = 100 / (len(self.icons))
+            index = floor(info["quality"] / base)
+
+            if info["quality"] == 100:
+                return self.icons[-1]
+            else:
+                return self.icons[index]
+
+        info["quality_icon"] = show_icon()
 
         return info
 
@@ -268,7 +281,8 @@ class Network(IntervalModule, ColorRangeModule):
     * `{freq}` — Current frequency
     * `{freq_divisor}` — Frequency divisor
     * `{quality}` — Link quality in percent
-    * `{quality_bar}` —Bar graphically representing link quality
+    * `{quality_bar}` — Bar graphically representing link quality
+    * `{quality_icon}` — Icon graphically representing link quality
 
     Network Traffic Formatters (requires PyPI package `psutil`):
 
@@ -309,6 +323,7 @@ class Network(IntervalModule, ColorRangeModule):
         ("recv_limit", "Expected max KiB/s. This value controls the drawing color of receive speed"),
         ("sent_limit", "Expected max KiB/s. similar with receive_limit"),
         ("freq_divisor", "divide Wifi frequency by this value"),
+        ("icons", "list of icons to represent wifi quality, in order from worst to best"),
         ("ignore_interfaces", "Array of interfaces to ignore when cycling through "
                               "on click, eg, ['lo']"),
         ("round_size", "defines number of digits in round"),
@@ -339,6 +354,7 @@ class Network(IntervalModule, ColorRangeModule):
     separate_color = False
     next_if_down = False
     detect_active = False
+    icons = ['low', 'med', 'high']
 
     # Network traffic settings
     divisor = 1024
@@ -360,13 +376,13 @@ class Network(IntervalModule, ColorRangeModule):
         # Don't require importing basiciw unless using the functionality it offers.
         if any(s in self.format_down or s in self.format_up
                or any(s in f for f in self.format_active_up.values())
-               for s in ['essid', 'freq', 'quality', 'quality_bar']):
+               for s in ['essid', 'freq', 'quality', 'quality_bar', 'quality_icon']):
             get_wifi_info = True
         else:
             get_wifi_info = False
 
         self.network_info = NetworkInfo(self.interface, self.ignore_interfaces, self.detached_down, self.unknown_up,
-                                        self.freq_divisor, get_wifi_info)
+                                        self.freq_divisor, get_wifi_info, self.icons)
 
         # Don't require importing psutil unless using the functionality it offers.
         if any(s in self.format_up or s in self.format_down for s in
@@ -428,7 +444,7 @@ class Network(IntervalModule, ColorRangeModule):
         format_values = dict(network_graph_recv="", network_graph_sent="", bytes_sent="", bytes_recv="",
                              packets_sent="", packets_recv="", rx_tot_Mbytes="", tx_tot_Mbytes="",
                              interface="", v4="", v4mask="", v4cidr="", v6="", v6mask="", v6cidr="", mac="",
-                             essid="", freq="", quality="", quality_bar="", rx_tot='', tx_tot="")
+                             essid="", freq="", quality="", quality_bar="", quality_icon="", rx_tot='', tx_tot="")
 
         if self.detect_active:
             self.interface = detect_active_interface(self.ignore_interfaces, self.interface)
