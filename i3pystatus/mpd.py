@@ -120,7 +120,7 @@ cleartext to the server.)"),
                 sock.recv(8192)
             sock.send((command + "\n").encode("utf-8"))
         try:
-            reply = sock.recv(16384).decode("utf-8")
+            reply = sock.recv(16384).decode("utf-8", "replace")
             replylines = reply.split("\n")[:-2]
 
             return dict(
@@ -136,7 +136,7 @@ cleartext to the server.)"),
             if playback_state == "stop":
                 currentsong = {}
             else:
-                currentsong = self._mpd_command(self.s, "currentsong")
+                currentsong = self._mpd_command(self.s, "currentsong") or {}
         except Exception:
             if self.hide_inactive:
                 self.output = {

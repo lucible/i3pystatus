@@ -10,5 +10,12 @@ ci-build
 docs/_build
 *.swp
 *.ropeproject
+<<<<<<< HEAD
 venv/*
 settings.json
+=======
+
+\.idea/
+
+venv/
+>>>>>>> 4bafdd690152e1dfc6c1d9220300c68e75ed4f2c
