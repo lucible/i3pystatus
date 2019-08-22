@@ -314,11 +314,11 @@ class BatteryChecker(IntervalModule):
                 else:
                     return ""
             else:
-                return ""
+                return ""
         elif status == 'Depleted':
             return "depleted"
         else:
-            return ""
+            return ""
 
     def init(self):
         if not self.paths or (self.path and self.path not in self.paths):
