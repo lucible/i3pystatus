@@ -382,7 +382,7 @@ class Network(IntervalModule, ColorRangeModule):
             get_wifi_info = False
 
         self.network_info = NetworkInfo(self.interface, self.ignore_interfaces, self.detached_down, self.unknown_up,
-                                        self.freq_divisor, get_wifi_info, self.icons)
+                                        self.freq_divisor, self.icons, get_wifi_info)
 
         # Don't require importing psutil unless using the functionality it offers.
         if any(s in self.format_up or s in self.format_down for s in
