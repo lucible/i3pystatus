@@ -222,6 +222,7 @@ class BatteryChecker(IntervalModule):
          "The text to display when the battery is not present. Provides {battery_ident} as formatting option"),
         ("no_text_full", "Don't display text when battery is full - 100%"),
         ("glyphs", "Arbitrarily long string of characters (or array of strings) to represent battery charge percentage"),
+        ("use_design_percentage", "Use design percentage rather then absolute percentage for alerts")
     )
 
     battery_ident = "ALL"
@@ -250,6 +251,7 @@ class BatteryChecker(IntervalModule):
     not_present_color = "#ffffff"
     no_text_full = False
     glyphs = "▁▂▃▄▅▆▇█"
+    use_design_percentage = False
 
     battery_prefix = 'BAT'
     base_path = '/sys/class/power_supply'
@@ -395,6 +397,7 @@ class BatteryChecker(IntervalModule):
         else:
             fdict["status"] = "FULL"
             color = self.full_color
+<<<<<<< HEAD
         if self.alert_design is True:
             if self.critical_level_command and fdict["status"] == "DIS" and fdict["percentage_design"] <= self.critical_level_percentage:
                 run_through_shell(self.critical_level_command, enable_shell=True)
@@ -432,6 +435,12 @@ class BatteryChecker(IntervalModule):
                 else:
                     self.notification.update(title=title,
                                              body=body)
+=======
+        if self.critical_level_command and fdict["status"] == "DIS" and fdict["percentage"] <= self.critical_level_percentage:
+            run_through_shell(self.critical_level_command, enable_shell=True)
+
+        self.alert_if_low_battery(fdict)
+>>>>>>> upstream/master
 
         if self.levels and fdict['status'] == 'DIS':
             self.levels.setdefault(0, self.status.get('DPL', 'DPL'))
@@ -449,3 +458,24 @@ class BatteryChecker(IntervalModule):
             "urgent": urgent,
             "color": color,
         }
+
+    def alert_if_low_battery(self, fdict):
+        if self.use_design_percentage:
+            percentage = fdict['percentage_design']
+        else:
+            percentage = fdict['percentage']
+
+        if self.alert and fdict["status"] == "DIS" and percentage <= self.alert_percentage:
+            title, body = formatp(self.alert_format_title, **fdict), formatp(self.alert_format_body, **fdict)
+            if self.notification is None:
+                self.notification = DesktopNotification(
+                    title=title,
+                    body=body,
+                    icon="battery-caution",
+                    urgency=2,
+                    timeout=self.alert_timeout,
+                )
+                self.notification.display()
+            else:
+                self.notification.update(title=title,
+                                         body=body)
